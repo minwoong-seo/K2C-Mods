@@ -33,7 +33,7 @@ internal sealed class MenuSession
         _preview = preview;
         _nav = new NavReader(player);
         var ctx = new PageContext { Player = player, Art = art, Preview = preview, SetStatus = SetStatus };
-        _pages = new Page[] { new ShopPage(ctx), new UpgradesPage(ctx), new UnitsPage(ctx), new StatuesPage(ctx) };
+        _pages = new Page[] { new ShopPage(ctx), new UpgradesPage(ctx), new UnitsPage(ctx), new StatuesPage(ctx), new SettingsPage(ctx) };
     }
 
     public bool Open { get; private set; }
@@ -136,8 +136,10 @@ internal sealed class MenuSession
         _view.Wheel(new Vector2(mouse.x, mouse.y), input.mouseScrollDelta.y);
         _view.Tick(now);
 
+        // A status message first, then the focused row's tooltip, then the page's hint.
         var showStatus = !string.IsNullOrEmpty(_status) && now < _statusUntil;
-        _view.SetFooter(showStatus ? _status : Hint(), showStatus);
+        var tip = showStatus ? null : _view.FocusedTip;
+        _view.SetFooter(showStatus ? _status : tip ?? Hint(), showStatus, tip != null);
     }
 
     private string Hint()

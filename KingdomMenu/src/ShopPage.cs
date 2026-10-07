@@ -20,7 +20,10 @@ internal sealed class ShopPage : Page
     public override string Hint(int player)
     {
         var (submit, cancel, tabs) = Coop.KeyNames(player);
-        return $"Hold {submit}: buy  {tabs}: tabs  {cancel}: close";
+        var fee = Shops.CourierFee(CurrencyType.Coins);
+        return fee > 0
+            ? $"Hold {submit}: buy (+{fee} courier)  {tabs}: tabs  {cancel}: close"
+            : $"Hold {submit}: buy  {tabs}: tabs  {cancel}: close";
     }
 
     public override void Fill(List<RowModel> rows)
@@ -45,8 +48,9 @@ internal sealed class ShopPage : Page
         foreach (var g in groups)
         {
             var live = g.Shops.Where(s => s != null).ToList();
-            var price = live.Count > 0 ? live.Min(s => s.Price) : 0;
             var currency = live.Count > 0 ? live[0].Currency : CurrencyType.Coins;
+            // What the stand asks, plus the courier's cut for buying it from afar.
+            var price = (live.Count > 0 ? live.Min(s => s.Price) : 0) + Shops.CourierFee(currency);
             var affordable = free || (wallet != null && wallet.GetCurrency(currency) >= price);
             var available = buyer != null && live.Any(s => s.isActiveAndEnabled && s.CanPay(buyer));
             var canBuy = affordable && available;

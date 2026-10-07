@@ -1,16 +1,22 @@
 # Kingdom Menu (Kingdom Two Crowns, BepInEx 6 IL2CPP)
 
-One menu, one key, four tabs. The installed mods' versions are at the foot of the tab column (e.g. `Menu 1.2.0`).
+One menu, one key, five tabs. The installed mods' versions are at the foot of the tab column (e.g. `Menu 1.3.0`).
 
 | Tab | What it does |
 |---|---|
 | **SHOP** | Buy bows, hammers, scythes, pikes, shields and other stand items from anywhere in your kingdom. |
 | **UPGRADES** | Spend coins on permanent upgrades for workers, army, your monarch and steed, and the kingdom (walls, bank, farms), saved per campaign. |
-| **UNITS** | How many of each job you have, with their live speed, work, reload and damage numbers. |
+| **UNITS** | How many of each job you have, with their live stats as the base value plus the change from upgrades and debt (blue better, red worse), and the soldiers' wages and debt. |
 | **STATUES** | The statues you've found: locked, asleep or active, what each blessing does, and the time statue's countdown. |
+| **SETTINGS** | Turn the HUD's parts on and off, the gameplay helpers, and the hardships, without leaving the game. |
 
-Also, outside the menu: **hold the drop key to keep dropping coins** (see [Hold to drop coins](#hold-to-drop-coins)),
-and an **update popup** when newer versions of the mods are out (see [Updates](#updates)).
+Also, outside the menu:
+- **Hardships** that make a modded kingdom harder again: a **courier fee** on the remote shop and **soldier wages**
+  paid from the bank, with debt that weakens your soldiers (see [Hardships](#hardships));
+- the **banker keeps collecting** every coin you give him and banks them all, even a few (see
+  [Banker keeps collecting](#banker-keeps-collecting));
+- **hold the drop key to keep dropping coins** (see [Hold to drop coins](#hold-to-drop-coins));
+- an **update popup** when newer versions of the mods are out (see [Updates](#updates)).
 
 It replaces the separate **Remote Shop** (F6) and **Kingdom Upgrades** (F8) mods. Install only this one; see
 [Upgrading from Remote Shop / Kingdom Upgrades](#upgrading-from-remote-shop--kingdom-upgrades).
@@ -44,8 +50,9 @@ the game's save folder (see [Upgrades](#upgrades)) until you delete that file to
 ## Layout and controls
 
 The tabs run down the left side of the panel, and the page fills the rest. The header shows your coins (and gems,
-if you have any), plus the page's buttons: PRICE on Shop and Upgrades, RESET on Upgrades. Upgrades has a second row
-of tabs across the top of the page for its categories (Workers, Army, Monarch, Kingdom).
+if you have any), plus the page's buttons: PRICE on Shop and Upgrades, RESET on Upgrades, DEFAULTS on Settings.
+Upgrades and Settings have a second row of tabs across the top of the page for their groups (Workers, Army, Monarch,
+Kingdom; HUD, Gameplay, Hardship).
 
 Pages show up to 6 rows (at least 4: in a short split-screen half the menu shows fewer rows rather than shrinking).
 Longer ones scroll: moving past the last row scrolls down, the mouse wheel scrolls the panel under the cursor, and a
@@ -58,7 +65,7 @@ gold mark on the line between the tabs and the page shows where you are. Rows wi
 | Close | B, Start, or a stick click | Esc or Backspace | |
 | Next / previous tab | RB / LB | E / Q, Tab / Shift+Tab, PgDn / PgUp | Click a tab |
 | Move focus | Left stick or d-pad | WASD or arrow keys | Hover |
-| Buy | **Hold** A on BUY or FILL | **Hold** Space/Enter, or **hold 1-9** for that row (Shift+1-9: FILL) | **Hold** BUY or FILL |
+| Buy (or change a setting, pay debt) | **Hold** A on the button | **Hold** Space/Enter, or **hold 1-9** for that row (Shift+1-9: its second button) | **Hold** the button |
 | Press PRICE, RESET or a tab | A | Space/Enter | Click |
 
 Player 2's keyboard keys are listed under [Local co-op](#local-co-op).
@@ -84,6 +91,8 @@ Player 2's keyboard keys are listed under [Local co-op](#local-co-op).
 - **BUY** buys one item. **FILL** keeps buying until every stand of that type is full or you run out of coins.
 - The price is drawn as coins like the game's own cost indicators (one coin and "x12" above five). The pips show
   what's lying on the stands.
+- With the [courier fee](#hardships) on (1 coin by default), every item costs that much more than the stand asks; the
+  price shown already includes it, and the footer says `(+1 courier)`.
 - Each purchase goes through the game's own payment code (`Payable.TransactionComplete`). The item appears on the
   stand exactly as if you had dropped coins there, and the stand's price increase still applies.
 
@@ -114,6 +123,10 @@ own** per-player upgrades (steed, coin magnet, quick hands, bigger purse) on the
 | Kingdom | Wall repair | x1.25 | 4 | 4, 6, 9, 14 | `Wall.repairRate` (hit points restored per repair tick) |
 | Kingdom | Bank interest | x1.25 | 4 | 10, 16, 26, 41 | `Banker.dailyInterest` (10 per 100) and `maxInterest` (8 a day, up to 16). Hidden until you have a banker |
 | Kingdom | Harvest yield | +1 coin | 3 | 25, 40, 64 | `Farmland.coinYield` (6 coins per plot harvest, up to 9). Hidden until you have a farm |
+
+**Army upgrades and wages.** With [soldier wages](#hardships) on (the default), the Army upgrades can only be bought,
+and only work, on an island with a bank, and once you have any of them your soldiers are paid from that bank every
+dawn. The ARMY tab starts with a Soldier wages row saying what that costs.
 
 **Balance.** The convenience upgrades are cheap. The two income upgrades are priced as investments so they can't
 snowball: a Bank interest level earns at most about 2 more coins a day, so it pays for itself in 5 to 20 days; a
@@ -180,9 +193,17 @@ cloud saves. The unmodded game never reads the file.
 One row per job you've unlocked (villagers, builders and archers always; farmers once a farm is built; soldiers once
 you have one or their stand is placed), plus your steed:
 - the count, at the right;
-- stats read from a live unit of that job, so upgrades and statue blessings are already included: walk/run speed
-  (the game's units per second), builders' time per work tick, archers' reload, soldiers' damage per hit and attack
-  interval. Damage upgrades act per hit, so for archers and pikemen they're shown as a multiplier.
+- stats read from a live unit of that job: walk/run speed (the game's units per second), builders' time per work tick,
+  archers' reload, range and arrow damage, soldiers' damage per hit and attack interval. Each is shown as **its base
+  value, then the change from it**: `Run 1.6 +0.32`, `Reload 0.3s -0.05`, `Dmg 1 -0.24`. The change is **blue when
+  it's better** (faster, further, harder hitting, a shorter reload) and **red when it's worse**. The change is what the
+  mod does: upgrades, and unpaid wages (debt). The base is the unit's own value before that, statue blessings included.
+  Pikemen have no damage number of their own, so theirs is shown from x1.
+
+While [soldier wages](#hardships) apply (a bank on this island and an upgraded army), the first row is **Soldier
+wages**: what they cost a day, how many soldiers that is, when the first wages are due, and any **debt** in red with
+what it does to their strength (`Debt 12  Strength 1 -0.24`). Its **PAY** button (hold) pays as much of the debt as
+your purse holds. The same row heads the ARMY upgrades.
 
 ## Statues
 
@@ -198,6 +219,79 @@ levels file):
 
 The **time statue** appears once you've been near it, with the days left before time runs out (gold under 5, red
 under 3).
+
+## Settings tab
+
+The mods' options you'd want to change while playing. They're saved straight to the mods' `.cfg` files and used at
+once:
+- **HUD:** each part of Kingdom HUD on or off (unit counter, purse, bank, wages, cottages, blood moon, stamina bar and
+  whether it hides when rested, nearby labels), which corner it sits in, and its size. Only shown when Kingdom HUD is
+  installed.
+- **Gameplay:** hold to drop coins, banker keeps collecting, the menu's size, and checking for updates.
+- **Hardship:** the courier fee, soldier wages, the wage rate, the grace period, and how much debt weakens soldiers.
+
+ON/OFF buttons switch, `-` and `+` change numbers, MOVE picks the next corner; hold them like BUY. **DEFAULTS** (press
+twice) puts the group you're looking at back to its defaults. Options about the bank stay hidden until your kingdom
+has one. Everything else (keys, opening with a stick click, split screen, the update repository) is in the `.cfg`
+file (see [Settings](#settings)); the stick click isn't in the menu, so a controller-only player can't lock themselves
+out of it.
+
+## Hardships
+
+The upgrades make a kingdom stronger, and the remote shop takes the walking (and the danger) out of buying. These put
+some of the pressure back. Both are on by default and can be changed or turned off in SETTINGS > HARDSHIP.
+
+**Courier fee.** Everything bought through the menu's SHOP costs extra: 1 coin per item by default (0 to 5). Walking
+to the stand and dropping coins there costs the normal price. Upgrades have no fee, and nothing does with PRICE: FREE.
+
+**Soldier wages.** Army upgrades turn your soldiers into paid ones.
+- **Army upgrades need a bank.** They can only be bought on an island that has a bank, and the ones you've bought only
+  work there: on an island without one (say, after sailing to a new island) they're switched off until its bank is
+  built. The ARMY tab then shows them greyed out ("Off until this island has a bank").
+- **They come with wages.** Once the army has any upgrade, your soldiers are paid **from the bank** every dawn, right
+  after the banker adds the day's interest: 1 coin for every 4 soldiers (archers, knights, pikemen, berserkers and
+  ninjas all count), rounded up, however many upgrades you buy. 15 archers cost 4 coins a day. Without army upgrades
+  there are no wages.
+- **Grace period.** When wages first apply on an island (the first army upgrade is bought there, its bank is built
+  with the army already upgraded, or you switch wages on), the first wages are due on the **3rd dawn**, so spending
+  your last coins on it doesn't put you straight into debt.
+- **Tooltips:** pointing at an army upgrade (with the stick, the keys or the mouse) says in the footer what it does to
+  wages: "Buying this starts wages: 4 coins a day, first paid in 3 days" before the first one, and buying it says so
+  again. The wages row's tooltip explains the debt.
+- **Where to see it:** a **Soldier wages** row at the top of the ARMY tab (what they'd cost, "from your first army
+  upgrade", "first paid in 3 days", or the debt), the same row on UNITS once wages apply, and Kingdom HUD's **Wages**
+  line under the bank: `Wages -4/day`, then `in 3 days` / `tomorrow` during the grace period, `paid 4` for a while after
+  each payday, and `debt 12` in red when there's debt.
+- If the bank can't cover it, the rest becomes **debt**. Coins that reach the bank later pay the debt off first, and
+  the UNITS page's PAY button pays it from your purse.
+- While there's debt, soldiers hit softer: every soldier's damage (archers, knights and the rest alike) is multiplied
+  by `1 - debt x 0.02`, so 12 coins of debt is x0.76. It never goes below x0.5.
+- **Each island has its own debt**, like its own bank: the game keeps every island's kingdom, banker and savings
+  apart, so wages come out of the bank of the island you're on, and debt run up on one island stays there (it only
+  weakens that island's soldiers, and waits for you if you sail back). An island without a bank pays no wages and owes
+  nothing. A new reign starts with no debt.
+- The debt is kept with the save (in `kingdommenu.upgrades.json`, next to the upgrade levels, per reign and island;
+  RESET doesn't clear it). Turning wages off stops both the wages and the penalty; the debt waits.
+- Turning wages off (SETTINGS > HARDSHIP) also lifts the bank rule: army upgrades work everywhere again, as before.
+- Settings: `SoldiersPerCoin` (4), `WageGraceDays` (3), `DebtPenaltyPerCoin` (0.02) and `MaxDebtPenalty` (0.5).
+
+Wages are paid by a Harmony postfix on `Banker.HandleOnDayStart` (where the game adds the interest), once a day on
+each island. The penalty uses the same per-hit multiplier as the damage upgrades.
+
+## Banker keeps collecting
+
+In the game the banker picks up coins you drop near him until he holds 10, then walks off to the bank with them and
+ignores the rest; fewer than 10 he just keeps. With this on (the default), he keeps picking coins up for as long as
+you keep dropping them. Once you stop (2 seconds without a new coin, and none left near him) he takes **all** of them
+to the bank, however few. Pairs well with [hold to drop coins](#hold-to-drop-coins).
+- How: his purse holds 20, and he heads to the bank when it's half full (`Wallet.TotalCapacity` x
+  `Banker.coinGatherTargetPercentage`). The mod raises both so he never stops early, and a Harmony prefix on
+  `Banker.ShouldDropOff` decides when he goes. Everything else (his walk to the bank, the interest, his payouts,
+  hiding at night) is the game's own.
+- The game saves only what's in the bank, not coins he's carrying. So when it saves, whatever he's carrying is counted
+  in the saved bank, and when nightfall (or Greed coming near) sends him into hiding wherever he is, what he's carrying
+  goes straight into the bank.
+- Turn it off with `BankerKeepsCollecting = false` (or in SETTINGS > GAMEPLAY).
 
 ## Hold to drop coins
 
@@ -255,7 +349,8 @@ Each player has their own menu, controls and purse.
 
 ## Settings
 
-`BepInEx/config/kingdommenu.kingdomtwocrowns.cfg`, or press F1 for Configuration Manager:
+`BepInEx/config/kingdommenu.kingdomtwocrowns.cfg`, the [SETTINGS tab](#settings-tab), or press F1 for Configuration
+Manager:
 - `ToggleKey` (F6) and `Player2ToggleKey` (F9)
 - `OpenWithStickClick`: L3/R3 opens the menu (on by default). If your pad's stick buttons aren't found, the log says
   `No left stick button found on '<controller>'` and lists its buttons; Steam Input can bind any button to F6 meanwhile.
@@ -263,6 +358,9 @@ Each player has their own menu, controls and purse.
 - `UiScale`: bigger or smaller (it already scales in whole-pixel steps with the screen height).
 - `Player1OnTop`: player 1 has the top half of a split screen (the left half when it's side by side).
 - `HoldToDropCoins` (on) and `HoldToDropInterval` (0.2 s between coins): holding the drop key keeps dropping coins.
+- `BankerKeepsCollecting` (on): the banker takes every coin you give him and banks them all.
+- `[Hardships] CourierFee` (1, 0 = off), `SoldierWages` (on), `SoldiersPerCoin` (4), `WageGraceDays` (3),
+  `DebtPenaltyPerCoin` (0.02) and `MaxDebtPenalty` (0.5). See [Hardships](#hardships).
 - `[Updates] CheckForUpdates` (on): check GitHub for newer versions when the game starts. `Repository`
   (`minwoong-seo/K2C-Mods`) is where it looks; `ApiUrl` is only for testing against a mirror.
 

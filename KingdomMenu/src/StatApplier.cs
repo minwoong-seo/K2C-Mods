@@ -23,8 +23,19 @@ internal sealed class StatApplier
         public float Written;
     }
 
+    /// <summary>The one MenuHost runs, so pages can show a stat's base value next to the current one.</summary>
+    internal static StatApplier Current;
+
+    /// <summary>Purse size the banker gets while Banker keeps collecting is on (see BankerDropOffPatch).</summary>
+    private const int BankerCapacity = 999;
+
     private Dictionary<(IntPtr, string), Entry> _cache = new();
     private Dictionary<(IntPtr, string), Entry> _next = new();
+    private bool _loggedBanker;
+
+    /// <summary>A field's value before any upgrade or penalty (what it would be unmodded), or fallback if it isn't changed.</summary>
+    public float BaseOf(Il2CppObjectBase obj, string field, float fallback) =>
+        obj != null && _cache.TryGetValue((obj.Pointer, field), out var entry) ? entry.Base : fallback;
 
     public void Apply()
     {
@@ -35,14 +46,19 @@ internal sealed class StatApplier
         var builderWork = L(Upgrades.BuilderWork);
         var builderMove = L(Upgrades.BuilderMove);
         var villagerMove = L(Upgrades.VillagerMove);
-        var archerRate = L(Upgrades.ArcherRate);
-        var soldierMove = L(Upgrades.SoldierMove);
+        // With soldier wages on, army upgrades only work on an island with a bank (Wages); unpaid wages make every
+        // soldier hit softer (damage only, so archers and knights lose the same).
+        var armyOn = playing && !Wages.ArmyNeedsBank;
+        float A(Upgrade u) => armyOn ? L(u) : 1f;
+        var strength = playing ? Wages.Strength : 1f;
+        var archerRate = A(Upgrades.ArcherRate);
+        var soldierMove = A(Upgrades.SoldierMove);
         float[] steedStamina = { L(Upgrades.SteedStamina, 0), L(Upgrades.SteedStamina, 1) };
         float[] steedSpeed = { L(Upgrades.SteedSpeed, 0), L(Upgrades.SteedSpeed, 1) };
         var ridden = new[] { Coop.Monarch(0)?.steed, Coop.Monarch(1)?.steed };
         var wallRepair = L(Upgrades.WallRepair);
         var recruit = L(Upgrades.RecruitSpeed);
-        var archerRange = L(Upgrades.ArcherRange);
+        var archerRange = A(Upgrades.ArcherRange);
         var bank = L(Upgrades.BankInterest);
         var harvest = playing ? UpgradeStore.Level(Upgrades.HarvestYield, 0) : 0;
         float[] quickHands = { L(Upgrades.QuickHands, 0), L(Upgrades.QuickHands, 1) };
@@ -50,8 +66,8 @@ internal sealed class StatApplier
         var monarchs = new[] { kingdom != null ? kingdom.playerOne : null, kingdom != null ? kingdom.playerTwo : null };
 
         // Damage is changed per hit in DamagePatch rather than on objects.
-        DamagePatch.ArcherMultiplier = L(Upgrades.ArcherDamage);
-        DamagePatch.SoldierMultiplier = L(Upgrades.SoldierDamage);
+        DamagePatch.ArcherMultiplier = A(Upgrades.ArcherDamage) * strength;
+        DamagePatch.SoldierMultiplier = A(Upgrades.SoldierDamage) * strength;
         DamagePatch.WallDamageMultiplier = 1f / L(Upgrades.WallToughness);
 
         _next.Clear();
@@ -106,10 +122,28 @@ internal sealed class StatApplier
             });
 
             // Bank: at dawn the banker adds min(maxInterest, ceil(stash * dailyInterest)); both scale.
+            // Banker keeps collecting: he stops picking coins up at TotalCapacity * coinGatherTargetPercentage of them
+            // (and at TotalCapacity), so both are lifted; BankerDropOffPatch decides when he takes them to the bank.
+            var keepCollecting = Plugin.BankerKeepsCollecting.Value;
             ForEach<Banker>(b =>
             {
                 Scale(b, "dailyInterest", () => b.dailyInterest, v => b.dailyInterest = v, x => x * bank);
                 Scale(b, "maxInterest", () => b.maxInterest, v => b.maxInterest = (int)Math.Round(v), x => MathF.Round(x * bank));
+                Scale(b, "coinGatherTargetPercentage", () => b.coinGatherTargetPercentage, v => b.coinGatherTargetPercentage = v,
+                    x => keepCollecting ? Math.Max(x, 1f) : x);
+                var w = b._wallet;
+                if (w != null)
+                    Scale(w, "TotalCapacity", () => w.TotalCapacity, v => w.TotalCapacity = (int)Math.Round(v),
+                        x => keepCollecting ? Math.Max(x, BankerCapacity) : x);
+                if (!_loggedBanker && w != null)
+                {
+                    _loggedBanker = true;
+                    // (From this pass's entries: the fields have just been written.)
+                    var capacity = _next.TryGetValue((w.Pointer, "TotalCapacity"), out var c) ? c.Base : w.TotalCapacity;
+                    var target = _next.TryGetValue((b.Pointer, "coinGatherTargetPercentage"), out var t) ? t.Base : b.coinGatherTargetPercentage;
+                    Plugin.Logger.LogInfo($"Banker: purse {capacity}, banks at {capacity * target} coins in the game" +
+                                          (keepCollecting ? "; Banker keeps collecting is on." : "."));
+                }
             });
 
             // Farms: each plot drops coinYield coins when harvested.
@@ -231,7 +265,15 @@ internal sealed class StatApplier
             Restore(p, "timeBetweenCoins", v => p.timeBetweenCoins = v);
             Restore(p, "timeBetweenCoinsForTouchSupport", v => p.timeBetweenCoinsForTouchSupport = v);
         });
-        ForEach<Banker>(b => { Restore(b, "dailyInterest", v => b.dailyInterest = v); Restore(b, "maxInterest", v => b.maxInterest = (int)Math.Round(v)); });
+        ForEach<Banker>(b =>
+        {
+            Restore(b, "dailyInterest", v => b.dailyInterest = v);
+            Restore(b, "maxInterest", v => b.maxInterest = (int)Math.Round(v));
+            Restore(b, "coinGatherTargetPercentage", v => b.coinGatherTargetPercentage = v);
+            var w = b._wallet;
+            if (w != null)
+                Restore(w, "TotalCapacity", v => w.TotalCapacity = (int)Math.Round(v));
+        });
         ForEach<Farmland>(f => Restore(f, "coinYield", v => f.coinYield = (int)Math.Round(v)));
         ForEach<Knight>(k => { Restore(k, "_walkSpeed", v => k._walkSpeed = v); Restore(k, "_runSpeed", v => k._runSpeed = v); Restore(k, "_retreatSpeed", v => k._retreatSpeed = v); });
         ForEach<Pikeman>(p => Restore(p, "_runSpeed", v => p._runSpeed = v));

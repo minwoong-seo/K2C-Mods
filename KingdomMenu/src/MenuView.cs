@@ -45,6 +45,9 @@ internal class RowModel
     public string PriceLabel;
 
     public RowButton[] Buttons = Array.Empty<RowButton>();
+
+    /// <summary>A tooltip: shown in the footer, instead of the page's hint, while the row has the focus (or the mouse).</summary>
+    public string Tip;
 }
 
 internal class UiButton
@@ -166,6 +169,8 @@ internal class MenuView
     private UiButton _focused;
     private bool _holdConsumed;
     private Vector2 _lastMouse = new(-1f, -1f);
+    /// <summary>The mouse moved last (rather than the keys or stick), so tooltips follow the row under it.</summary>
+    private bool _tipFromMouse;
     private bool _subTabsShown;
 
     public Action<int> OnTab;
@@ -285,6 +290,7 @@ internal class MenuView
 
         row.Name = AddText(NewRect("Name", row.Rect, 44f, 1f, 130f, 16f), _art.Body, "", Cream, TextAnchor.MiddleLeft);
         row.Detail = AddText(NewRect("Detail", row.Rect, 44f, 15f, 130f, 16f), _art.Body, "", Dim, TextAnchor.MiddleLeft);
+        row.Detail.supportRichText = true; // the Units page colours stat changes
         row.Right = AddText(NewRect("Right", row.Rect, 44f, 1f, RowWidth - 48f, 16f), _art.Body, "", Cream, TextAnchor.MiddleRight);
 
         for (var i = 0; i < MaxPips; i++)
@@ -394,6 +400,10 @@ internal class MenuView
     {
         _priceButton.Rect.gameObject.SetActive(priceLabel != null);
         _resetButton.Rect.gameObject.SetActive(resetLabel != null);
+        // Without the price toggle (SETTINGS' DEFAULTS), the reset button takes its wider place at the right end.
+        var resetWidth = priceLabel != null ? 56f : 92f;
+        Place(_resetButton.Rect, PanelWidth - Inset - 92f - (priceLabel != null ? 4f + 56f : 0f), 33f, resetWidth, 20f);
+        _resetButton.Label.rectTransform.sizeDelta = new Vector2(resetWidth, 20f);
         if (priceLabel != null)
             _priceButton.Label.text = priceLabel;
         if (resetLabel != null)
@@ -627,10 +637,35 @@ internal class MenuView
         }
     }
 
-    public void SetFooter(string text, bool highlight)
+    /// <param name="highlight">A status message (gold).</param>
+    /// <param name="tip">A row's tooltip (cream); otherwise the page's hint (dim).</param>
+    public void SetFooter(string text, bool highlight, bool tip = false)
     {
         _footer.text = text;
-        _footer.color = highlight ? Gold : Dim;
+        _footer.color = highlight ? Gold : tip ? Cream : Dim;
+    }
+
+    /// <summary>
+    /// The tooltip of the row under the mouse, if the mouse moved last, or else of the row that has the focus (moved to
+    /// with the keys or stick); null if that row has none.
+    /// </summary>
+    public string FocusedTip
+    {
+        get
+        {
+            var index = -1;
+            if (_tipFromMouse)
+            {
+                for (var i = 0; i < _rows.Count; i++)
+                {
+                    if (_rows[i].Rect.gameObject.activeSelf && RectTransformUtility.RectangleContainsScreenPoint(_rows[i].Rect, _lastMouse, null))
+                        index = _scroll + i;
+                }
+            }
+            else if (_focused != null && _focused.GridRow >= FirstRowGrid && IsVisible(_focused))
+                index = _scroll + _focused.GridRow - FirstRowGrid;
+            return index >= 0 && index < _models.Count ? _models[index].Tip : null;
+        }
     }
 
     public void Tick(float time)
@@ -657,6 +692,8 @@ internal class MenuView
             _focused = Refocus(_focused);
 
         var moved = (mouse - _lastMouse).sqrMagnitude > 0.25f;
+        if (moved && _lastMouse.x >= 0f)
+            _tipFromMouse = true;
         _lastMouse = mouse;
         foreach (var b in _buttons)
         {
@@ -800,6 +837,7 @@ internal class MenuView
     {
         if (dx == 0 && dy == 0)
             return;
+        _tipFromMouse = false;
         if (_focused == null || !IsVisible(_focused))
         {
             FocusDefault();

@@ -11,7 +11,7 @@ public class Plugin : BasePlugin
 {
     public const string Guid = "kingdomhud.kingdomtwocrowns";
     public const string Name = "Kingdom HUD";
-    public const string Version = "1.2.0";
+    public const string Version = "1.3.0";
 
     public enum Corner { TopLeft, TopRight, BottomLeft, BottomRight }
 
@@ -23,6 +23,10 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> ShowUnitCounter;
     internal static ConfigEntry<bool> ShowKingdomInfo;
     internal static ConfigEntry<bool> ShowPurse;
+    internal static ConfigEntry<bool> ShowBank;
+    internal static ConfigEntry<bool> ShowWages;
+    internal static ConfigEntry<bool> ShowCottages;
+    internal static ConfigEntry<bool> ShowBloodMoon;
     internal static ConfigEntry<bool> ShowNearbyLabels;
     internal static ConfigEntry<Corner> CounterCorner;
     internal static ConfigEntry<float> UiScale;
@@ -43,6 +47,12 @@ public class Plugin : BasePlugin
         ShowKingdomInfo = Config.Bind("Units", "ShowKingdomInfo", true,
             "Under the unit counter, show the banker's stash with the interest it pays at dawn, villagers waiting in cottages, and days until the next blood moon.");
         ShowPurse = Config.Bind("Units", "ShowPurse", true, "Show how many coins (and gems) are in your purse.");
+        // Each kingdom-info line on its own (ShowKingdomInfo still hides them all); Kingdom Menu's SETTINGS tab changes these.
+        ShowBank = Config.Bind("Info", "ShowBank", true, "Kingdom info: the banker's stash and the interest it pays at dawn.");
+        ShowWages = Config.Bind("Info", "ShowWages", true,
+            "Kingdom info: the soldiers' daily wages and any unpaid debt (when Kingdom Menu's Soldier wages hardship is on).");
+        ShowCottages = Config.Bind("Info", "ShowCottages", true, "Kingdom info: villagers waiting in cottages and the time to the next one.");
+        ShowBloodMoon = Config.Bind("Info", "ShowBloodMoon", true, "Kingdom info: days until the next blood moon.");
         ShowNearbyLabels = Config.Bind("Labels", "ShowNearbyLabels", true,
             "Show the name of whatever you're standing at (walls, towers, shops, hermits, statues, mounts...).");
         // New key (was "Corner", default TopRight) so existing configs move off the game's coin purse.

@@ -5,7 +5,7 @@ pixel fonts and sprites, and work with keyboard, mouse and controller, including
 
 | Folder | What it is | Keys |
 |---|---|---|
-| [`KingdomMenu/`](KingdomMenu/) | One menu with tabs: a remote shop, coin upgrades (saved per campaign), unit stats and statues. It shows nothing you haven't unlocked yet. Also: hold the drop key to keep dropping coins, and a popup when updates are out. | F6 / L3 / R3 |
+| [`KingdomMenu/`](KingdomMenu/) | One menu with tabs: a remote shop, coin upgrades (saved per campaign), unit stats, statues and settings. It shows nothing you haven't unlocked yet. Also: hardships to make a modded game harder again (a courier fee and soldier wages with debt), a banker who banks every coin you give him, hold the drop key to keep dropping coins, and a popup when updates are out. | F6 / L3 / R3 |
 | [`KingdomHud/`](KingdomHud/) | Stamina bar under your horse, unit counter, banker interest, blood-moon countdown, labels for nearby things | F7 |
 | [`BepInEx-Fix/`](BepInEx-Fix/) | Patched Cpp2IL. Without it, BepInEx can't load **any** plugin on this game version. | |
 

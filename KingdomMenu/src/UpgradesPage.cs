@@ -16,6 +16,14 @@ internal sealed class UpgradesPage : Page
 
     public UpgradesPage(PageContext ctx) : base(ctx) { }
 
+    /// <summary>With soldier wages on, army upgrades need a bank on this island (see <see cref="Wages"/>).</summary>
+    private bool ArmyTab => Categories[SubTab] == Category.Army;
+
+    // Mentions the bank only once the campaign has had one (no spoilers).
+    public override string EmptyMessage => ArmyTab && Wages.ArmyNeedsBank
+        ? (UpgradeStore.Flag(Wages.BankSeenFlag) ? "Army upgrades need a bank on this island." : "Nothing to train yet.")
+        : "";
+
     public override string Title => "UPGRADES";
     public override IReadOnlyList<string> SubTabs => CategoryNames;
     public override string PriceLabel => FreeLabel;
@@ -35,9 +43,20 @@ internal sealed class UpgradesPage : Page
         var coins = wallet != null ? wallet.GetCurrency(CurrencyType.Coins) : (preview ? 30 : (int?)null);
         var free = Plugin.FreePurchases.Value;
 
-        // Upgrades for units not reached yet stay hidden (unless already bought, or in the layout preview).
+        // Army upgrades bring soldier wages: the wages row comes first, once the island has a bank.
+        var armyOff = ArmyTab && Wages.ArmyNeedsBank;
+        if (ArmyTab)
+        {
+            var wages = WagesRow.Build(Ctx, armyTab: true);
+            if (wages != null)
+                rows.Add(wages);
+        }
+
+        // Upgrades for units not reached yet stay hidden (unless already bought, or in the layout preview). Without a
+        // bank on this island (wages on), army upgrades can't be bought and the ones already bought are switched off.
         var page = Upgrades.In(Categories[SubTab])
-            .Where(u => preview || u.Unlocked == null || u.Unlocked() || (playing && UpgradeStore.Level(u, Ctx.Player) > 0));
+            .Where(u => preview || (playing && UpgradeStore.Level(u, Ctx.Player) > 0)
+                        || (!armyOff && (u.Unlocked == null || u.Unlocked())));
         var i = 0;
         foreach (var u in page)
         {
@@ -45,6 +64,22 @@ internal sealed class UpgradesPage : Page
             i++;
             var maxed = level >= u.MaxLevel;
             var cost = free ? 0 : u.Cost(level);
+            if (armyOff)
+            {
+                rows.Add(new RowModel
+                {
+                    Icon = Ctx.Art.IconFor(u, Ctx.Player),
+                    Name = u.Name,
+                    NameColor = MenuView.Dim,
+                    Detail = "Off until this island has a bank",
+                    Tip = "Army upgrades need a bank on this island to pay the soldiers.",
+                    Pips = u.MaxLevel,
+                    PipsFull = level,
+                    PipsGold = true,
+                    Buttons = new[] { new RowButton { Label = "BUY", Enabled = false } },
+                });
+                continue;
+            }
             var canBuy = !maxed && (playing || preview) && coins.HasValue && coins.Value >= cost;
             var upgrade = u;
             if (u.IsSwitch && maxed)
@@ -69,6 +104,7 @@ internal sealed class UpgradesPage : Page
             }
             rows.Add(new RowModel
             {
+                Tip = WageTip(u, playing),
                 Icon = Ctx.Art.IconFor(u, Ctx.Player),
                 Name = u.Name,
                 NameColor = maxed ? MenuView.Gold : MenuView.Cream,
@@ -88,6 +124,19 @@ internal sealed class UpgradesPage : Page
     }
 
     private const float SwitchHoldSeconds = 0.25f;
+
+    /// <summary>Army rows' tooltip: the first army upgrade is what starts soldier wages.</summary>
+    private static string WageTip(Upgrade upgrade, bool playing)
+    {
+        if (upgrade.Category != Category.Army || !playing || !Wages.Enabled || !Wages.BankHere)
+            return null;
+        var cost = Wages.DailyCost(WagesInfo.Soldiers);
+        if (Wages.ArmyUpgraded)
+            return $"Army upgrades come with wages: {cost}, paid at dawn.";
+        return Wages.PerDay(WagesInfo.Soldiers) > 0
+            ? $"Buying this starts wages: {cost}, {Wages.FirstPaid(Wages.FirstWagesIn())}."
+            : $"Buying this starts soldier wages: {cost}.";
+    }
 
     /// <summary>Per-save flag set while a bought switch is off (so a fresh purchase starts on).</summary>
     private static string SwitchOffFlag(Upgrade upgrade, int player) => upgrade.Key(player) + "_off";
@@ -117,6 +166,12 @@ internal sealed class UpgradesPage : Page
             return;
         }
 
+        if (upgrade.Category == Category.Army && Wages.ArmyNeedsBank)
+        {
+            Ctx.SetStatus("Army upgrades need a bank on this island.");
+            return;
+        }
+
         var level = UpgradeStore.Level(upgrade, Ctx.Player);
         if (level >= upgrade.MaxLevel)
         {
@@ -143,8 +198,12 @@ internal sealed class UpgradesPage : Page
             wallet.RemoveCurrency(CurrencyType.Coins, cost);
         }
 
+        var startsWages = upgrade.Category == Category.Army && Wages.Enabled && !Wages.ArmyUpgraded;
+        var firstIn = Wages.FirstWagesIn();
         UpgradeStore.SetLevel(upgrade, Ctx.Player, level + 1);
-        Ctx.SetStatus($"{upgrade.Name} level {level + 1}!");
+        Ctx.SetStatus(startsWages
+            ? $"{upgrade.Name} level {level + 1}! Wages start, {Wages.FirstPaid(firstIn)}."
+            : $"{upgrade.Name} level {level + 1}!");
     }
 
     public override void OnReset()

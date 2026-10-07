@@ -177,6 +177,13 @@ internal static class Shops
         _ => currency.ToString().ToLowerInvariant(),
     };
 
+    /// <summary>
+    /// The Courier fee hardship: extra coins per item bought through the menu (none when purchases are free, or for
+    /// things priced in gems).
+    /// </summary>
+    public static int CourierFee(CurrencyType currency) =>
+        !Plugin.FreePurchases.Value && currency == CurrencyType.Coins ? Math.Clamp(Plugin.CourierFee.Value, 0, 5) : 0;
+
     /// <returns>null on success, otherwise a message explaining why nothing was bought.</returns>
     public static string TryBuyOne(ShopGroup group, Player buyer)
     {
@@ -201,8 +208,8 @@ internal static class Shops
         var stockBefore = shop.GetItemCount();
         var wallet = buyer.wallet;
         var currency = shop.Currency;
-        var price = shop.Price;
         var free = Plugin.FreePurchases.Value;
+        var price = shop.Price + CourierFee(currency);
 
         if (!free)
         {

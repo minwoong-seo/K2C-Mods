@@ -12,7 +12,7 @@ public class Plugin : BasePlugin
 {
     public const string Guid = "kingdommenu.kingdomtwocrowns";
     public const string Name = "Kingdom Menu";
-    public const string Version = "1.2.0";
+    public const string Version = "1.3.0";
 
     internal static ManualLogSource Logger;
     internal static ConfigEntry<KeyCode> ToggleKey;
@@ -23,6 +23,13 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> UiScale;
     internal static ConfigEntry<bool> HoldToDropCoins;
     internal static ConfigEntry<float> HoldToDropInterval;
+    internal static ConfigEntry<bool> BankerKeepsCollecting;
+    internal static ConfigEntry<int> CourierFee;
+    internal static ConfigEntry<bool> SoldierWages;
+    internal static ConfigEntry<int> SoldiersPerCoin;
+    internal static ConfigEntry<int> WageGraceDays;
+    internal static ConfigEntry<float> DebtPenaltyPerCoin;
+    internal static ConfigEntry<float> MaxDebtPenalty;
     internal static ConfigEntry<bool> CheckForUpdates;
     internal static ConfigEntry<string> UpdateRepository;
     internal static ConfigEntry<string> UpdateApiUrl;
@@ -47,6 +54,20 @@ public class Plugin : BasePlugin
             "Holding the drop key (down) with nothing to pay for in reach keeps dropping coins until you let go, instead of one coin per press. Paying for buildings is unchanged, and it never drops gems.");
         HoldToDropInterval = Config.Bind("Gameplay", "HoldToDropInterval", 0.2f,
             "Seconds between coins while the drop key is held (they start after holding it for half a second).");
+        BankerKeepsCollecting = Config.Bind("Gameplay", "BankerKeepsCollecting", true,
+            "The banker keeps picking up coins for as long as you keep giving them, and banks everything once you stop (even a few coins), instead of walking off to the bank at 10.");
+        CourierFee = Config.Bind("Hardships", "CourierFee", 1,
+            new ConfigDescription("Extra coins per item bought from the menu's remote shop (the courier's cut). 0 = off.", new AcceptableValueRange<int>(0, 5)));
+        SoldierWages = Config.Bind("Hardships", "SoldierWages", true,
+            "Army upgrades need a bank on the island and come with wages: once the army has any, soldiers are paid from that bank every dawn. What the bank can't cover becomes debt, and while there's debt soldiers hit softer. Coins banked later pay the debt off first.");
+        SoldiersPerCoin = Config.Bind("Hardships", "SoldiersPerCoin", 4,
+            new ConfigDescription("Daily wages: 1 coin for every this many soldiers (archers included), rounded up.", new AcceptableValueRange<int>(1, 10)));
+        WageGraceDays = Config.Bind("Hardships", "WageGraceDays", 3,
+            new ConfigDescription("Grace period: a newly built (or found) bank pays its first wages on this dawn, so building it with your last coins doesn't put you in debt. 1 = the next dawn.", new AcceptableValueRange<int>(1, 10)));
+        DebtPenaltyPerCoin = Config.Bind("Hardships", "DebtPenaltyPerCoin", 0.02f,
+            new ConfigDescription("How much soldiers' damage drops for each coin of unpaid wages: 0.02 takes 0.02 off per coin, so 12 coins owed is x0.76.", new AcceptableValueRange<float>(0f, 0.1f)));
+        MaxDebtPenalty = Config.Bind("Hardships", "MaxDebtPenalty", 0.5f,
+            new ConfigDescription("The most that debt can weaken soldiers (0.5 = never below x0.5).", new AcceptableValueRange<float>(0f, 0.9f)));
         CheckForUpdates = Config.Bind("Updates", "CheckForUpdates", true,
             "Check GitHub for newer versions of the mods when the game starts. If there are any, a popup lists them and asks before installing.");
         UpdateRepository = Config.Bind("Updates", "Repository", "minwoong-seo/K2C-Mods",
@@ -67,6 +88,10 @@ public class Plugin : BasePlugin
         harmony.PatchAll(typeof(HoldToDropPatch));
         // The Gallop toggle upgrade: tap to gallop, tap again to stop.
         harmony.PatchAll(typeof(GallopTogglePatch));
+        // The banker banks every coin he's given; soldiers' wages are paid at dawn (Wages).
+        harmony.PatchAll(typeof(BankerDropOffPatch));
+        harmony.PatchAll(typeof(BankerDawnPatch));
+        harmony.PatchAll(typeof(BankerSavePatch));
 
         // Checks for newer versions of the mods in the background; MenuHost shows the popup.
         Updates.Start();

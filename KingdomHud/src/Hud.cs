@@ -16,6 +16,9 @@ public class Hud : MonoBehaviour
 {
     private const float RefreshInterval = 0.5f;
 
+    /// <summary>How long (game seconds) the wages line says what this morning's payday took.</summary>
+    private const float PaydayNoteSeconds = 90f;
+
     // Create BepInEx/config/kingdomhud.preview to show the HUD outside gameplay (title screen) with sample numbers.
     private static readonly bool Preview = File.Exists(Path.Combine(Paths.ConfigPath, "kingdomhud.preview"));
 
@@ -187,7 +190,7 @@ public class Hud : MonoBehaviour
             var hasBank = KingdomInfo.TryGetBank(out var stash, out var interest, out var maxInterest, out var fullAt);
             if (Preview && !hasBank)
                 (hasBank, stash, interest, maxInterest, fullAt) = (true, 45, 5, 8, 71);
-            if (hasBank)
+            if (hasBank && Plugin.ShowBank.Value)
             {
                 var full = interest >= maxInterest;
                 _lines.Add(new InfoLine
@@ -203,8 +206,35 @@ public class Hud : MonoBehaviour
                 });
             }
 
+            // Wages (Kingdom Menu's Soldier wages): what the soldiers cost a day at dawn, then (most important first) any
+            // debt in red, a new bank's grace period counting down, or what this morning's payday took.
+            var hasWages = MenuLink.TryGetWages(out var w);
+            if (Preview && !hasWages)
+                (hasWages, w) = (true, new MenuLink.Wages { PerDay = 6, Debt = 12, PaidAgo = -1f });
+            if (hasWages && Plugin.ShowWages.Value)
+            {
+                var (note, noteColor) =
+                    w.Debt > 0 ? ($"debt {w.Debt}", CounterPanel.Danger)
+                    : w.StartsIn > 1 ? ($"in {w.StartsIn} days", CounterPanel.Gold)
+                    : w.StartsIn == 1 ? ("tomorrow", CounterPanel.Gold)
+                    : w.LastPaid > 0 && w.PaidAgo >= 0f && w.PaidAgo < PaydayNoteSeconds ? ($"paid {w.LastPaid}", CounterPanel.Gold)
+                    : ((string)null, CounterPanel.Dim);
+                _lines.Add(new InfoLine
+                {
+                    Icon = Art.Get("archer_idle1_0"),
+                    Text = "Wages",
+                    Color = CounterPanel.Cream,
+                    // No bank on this island: nothing is paid here, so no daily amount.
+                    BadgeIcon = hasBank ? Art.Get("menu_sun") ?? Art.Get("sun") : null,
+                    Badge = hasBank ? $"-{w.PerDay}/day" : null,
+                    BadgeColor = w.PerDay > 0 && w.StartsIn == 0 ? CounterPanel.Cream : CounterPanel.Dim,
+                    Note = note,
+                    NoteColor = noteColor,
+                });
+            }
+
             // Cottages: one pip per villager slot (full = ready to hire), and a bar filling up to the next one.
-            if (KingdomInfo.TryGetCottages(out var ready, out var max, out var nextIn, out var cooldown))
+            if (Plugin.ShowCottages.Value && KingdomInfo.TryGetCottages(out var ready, out var max, out var nextIn, out var cooldown))
             {
                 _lines.Add(new InfoLine
                 {
@@ -219,7 +249,7 @@ public class Hud : MonoBehaviour
             }
 
             // Blood moon: a red moon and the days left, brighter as it gets closer.
-            var moon = KingdomInfo.DaysUntilBloodMoon() ?? (Preview ? 3 : (int?)null);
+            var moon = Plugin.ShowBloodMoon.Value ? KingdomInfo.DaysUntilBloodMoon() ?? (Preview ? 3 : (int?)null) : null;
             if (moon.HasValue)
             {
                 var d = moon.Value;

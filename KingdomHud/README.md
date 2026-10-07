@@ -23,6 +23,10 @@ An information HUD drawn with the game's own sprites and fonts:
   - **Bank:** `Bank 27` (a coin crate with the banker's stash), a sun with `+3/day`, the interest it adds at the next dawn (computed exactly
     like the game: `min(maxInterest, ceil(stash x dailyInterest))`), and a gold bar filling up to the stash that
     earns the most interest ("max" once it does).
+  - **Wages** (with Kingdom Menu's soldier wages, once the army is upgraded): a sun with `-4/day`, what the soldiers
+    are paid from the bank each dawn. After it: `in 3 days` / `tomorrow` while a new bank's grace period runs, `paid 4`
+    for a while after each payday, or `debt 12` in red if the bank couldn't cover it. Read from Kingdom Menu while it's
+    installed.
   - **Cottages:** a villager with one pip per cottage slot (lit = ready to hire), a bar filling up to the next refill,
     and the seconds left. Each cottage refills one villager on a timer up to its slots, and paying it hands one over.
   - **Blood moon:** a red moon and the days until the next one, turning gold the day before and red on the night.
@@ -37,10 +41,12 @@ An information HUD drawn with the game's own sprites and fonts:
   panel in the corner of their own half, with their own purse and the shared kingdom info. If they show up on the
   wrong halves, turn off `Player1OnTop`.
 
-**F7** shows or hides everything. For a controller, set `ControllerButton` (e.g. `JoystickButton6` = Back/View), or bind a button to F7 with Steam Input. Each part can be turned off in `BepInEx/config/kingdomhud.kingdomtwocrowns.cfg`,
-or with F1 in Configuration Manager:
+**F7** shows or hides everything. For a controller, set `ControllerButton` (e.g. `JoystickButton6` = Back/View), or bind a button to F7 with Steam Input. Each part can be turned off in Kingdom Menu's
+SETTINGS > HUD tab while playing, in `BepInEx/config/kingdomhud.kingdomtwocrowns.cfg`, or with F1 in Configuration
+Manager:
 - `ShowStaminaBar`, `AutoHide`
-- `ShowUnitCounter`, `ShowPurse`, `ShowKingdomInfo`, `Position` (TopLeft by default; TopRight sits over the game's coin purse;
+- `[Info] ShowBank`, `ShowWages`, `ShowCottages`, `ShowBloodMoon`: each kingdom-info line on its own
+- `ShowUnitCounter`, `ShowPurse`, `ShowKingdomInfo` (all the info lines at once), `Position` (TopLeft by default; TopRight sits over the game's coin purse;
   BottomLeft and BottomRight also work), `UiScale` (the counter scales with screen height in whole
   pixels: 720p 2x, 1080p 3x, 1440p 4x, and UiScale multiplies that)
 - `ShowNearbyLabels`.

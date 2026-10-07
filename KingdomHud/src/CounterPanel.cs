@@ -33,8 +33,9 @@ internal class InfoLine
     /// <summary>A small progress bar (0..1), or -1 for none.</summary>
     public float Bar = -1f;
     public Color BarColor = CounterPanel.Gold;
-    /// <summary>Dim text at the end, e.g. "98s".</summary>
+    /// <summary>Text at the end, dim unless coloured, e.g. "98s".</summary>
     public string Note;
+    public Color NoteColor = CounterPanel.Dim;
 }
 
 /// <summary>
@@ -277,6 +278,7 @@ internal class CounterPanel
             }
 
             view.Note.text = line.Note ?? "";
+            view.Note.color = line.NoteColor;
             view.Note.rectTransform.anchoredPosition = new Vector2(x, 0f);
             if (!string.IsNullOrEmpty(line.Note))
                 x += Mathf.Ceil(view.Note.preferredWidth) + 5f;

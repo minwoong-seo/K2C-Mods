@@ -195,6 +195,28 @@ internal static class UpgradeStore
         Changed?.Invoke();
     }
 
+    /// <summary>A per-save number kept next to the levels (e.g. the soldiers' unpaid wages); 0 if never set. RESET leaves it alone.</summary>
+    public static int Value(string name)
+    {
+        var key = CurrentSaveKey();
+        return key != null && _saves.TryGetValue(key, out var values) && values.TryGetValue(name, out var value) ? value : 0;
+    }
+
+    public static void SetValue(string name, int value)
+    {
+        var key = CurrentSaveKey();
+        if (key == null || Value(name) == value)
+            return;
+        if (!_saves.TryGetValue(key, out var values))
+            _saves[key] = values = new Dictionary<string, int>();
+        if (value == 0)
+            values.Remove(name);
+        else
+            values[name] = value;
+        Save();
+        Changed?.Invoke();
+    }
+
     public static void SetFlag(string name)
     {
         var key = CurrentSaveKey();

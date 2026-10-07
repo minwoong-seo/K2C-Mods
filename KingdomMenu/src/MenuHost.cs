@@ -34,6 +34,7 @@ public class MenuHost : MonoBehaviour
     private void Awake()
     {
         UpgradeStore.Changed += () => _applyNow = true;
+        StatApplier.Current = _applier;
     }
 
     private void Update()
@@ -44,6 +45,10 @@ public class MenuHost : MonoBehaviour
             {
                 _applyNow = false;
                 _nextApply = Time.unscaledTime + ApplyInterval;
+                // Coins the banker is still carrying when he hides go into the bank, then wages (paying off debt changes
+                // how strong the soldiers are), then the stats.
+                Guard("banker", BankerSafekeeping.Tick);
+                Guard("wages", Wages.Tick);
                 _applier.Apply();
                 StatuesPage.TrackFound();
             }
@@ -61,6 +66,22 @@ public class MenuHost : MonoBehaviour
                 Plugin.Logger.LogError($"Kingdom Menu error: {e}");
                 _loggedError = true;
             }
+        }
+    }
+
+    private readonly System.Collections.Generic.HashSet<string> _loggedParts = new();
+
+    /// <summary>Runs one part of the per-second work so that an error in it doesn't stop the stats being applied.</summary>
+    private void Guard(string part, Action tick)
+    {
+        try
+        {
+            tick();
+        }
+        catch (Exception e)
+        {
+            if (_loggedParts.Add(part))
+                Plugin.Logger.LogError($"Kingdom Menu {part} error: {e}");
         }
     }
 
