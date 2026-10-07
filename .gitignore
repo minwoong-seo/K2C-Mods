@@ -1,0 +1,6 @@
+# Build leftovers
+**/bin/
+**/obj/
+
+# Release zips are published under Releases, not committed
+*.zip

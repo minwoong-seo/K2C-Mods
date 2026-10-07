@@ -1,0 +1,33 @@
+diff --git a/Cpp2IL.Core/Model/Contexts/TypeAnalysisContext.cs b/Cpp2IL.Core/Model/Contexts/TypeAnalysisContext.cs
+index d11dfb9..7092dfc 100644
+--- a/Cpp2IL.Core/Model/Contexts/TypeAnalysisContext.cs
++++ b/Cpp2IL.Core/Model/Contexts/TypeAnalysisContext.cs
+@@ -205,7 +205,8 @@ public class TypeAnalysisContext : HasGenericParameters, ITypeInfoProvider, ICSh
+             InitCustomAttributeData();
+ 
+             Methods = Definition.Methods!.Select(m => new MethodAnalysisContext(m, this)).ToList();
+-            Properties = Definition.Properties!.Select(p => new PropertyAnalysisContext(p, this)).ToList();
++            //Patched for Kingdom Two Crowns: skip properties whose accessors cannot be resolved (or whose type cannot be determined)
++            Properties = Definition.Properties!.Where(p => (p.Getter != null || p.Setter != null) && p.RawPropertyType != null).Select(p => new PropertyAnalysisContext(p, this)).ToList();
+             Events = Definition.Events!.Select(e => new EventAnalysisContext(e, this)).ToList();
+             Fields = Definition.FieldInfos!.ToList().Select(f => new FieldAnalysisContext(f, this)).ToList();
+         }
+diff --git a/LibCpp2IL/Metadata/Il2CppPropertyDefinition.cs b/LibCpp2IL/Metadata/Il2CppPropertyDefinition.cs
+index 2d1b598..7c04d46 100644
+--- a/LibCpp2IL/Metadata/Il2CppPropertyDefinition.cs
++++ b/LibCpp2IL/Metadata/Il2CppPropertyDefinition.cs
+@@ -39,11 +39,11 @@ public class Il2CppPropertyDefinition : ReadableClass, IIl2CppTokenProvider
+ 
+     public Il2CppMethodDefinition? Setter => LibCpp2IlMain.TheMetadata == null || set.IsNull || DeclaringType == null ? null : LibCpp2IlMain.TheMetadata.GetMethodDefinitionFromIndex(DeclaringType.FirstMethodIdx + set);
+ 
+-    public Il2CppTypeReflectionData? PropertyType => LibCpp2IlMain.TheMetadata == null ? null : Getter == null ? Setter!.Parameters![0].Type : Getter!.ReturnType;
++    public Il2CppTypeReflectionData? PropertyType => LibCpp2IlMain.TheMetadata == null ? null : Getter != null ? Getter.ReturnType : Setter?.Parameters is { Length: > 0 } sp ? sp[sp.Length - 1].Type : null;
+ 
+-    public Il2CppType? RawPropertyType => LibCpp2IlMain.TheMetadata == null ? null : Getter == null ? Setter!.Parameters![0].RawType : Getter!.RawReturnType;
++    public Il2CppType? RawPropertyType => LibCpp2IlMain.TheMetadata == null ? null : Getter != null ? Getter.RawReturnType : Setter?.Parameters is { Length: > 0 } sp ? sp[sp.Length - 1].RawType : null;
+ 
+-    public bool IsStatic => Getter == null ? Setter!.IsStatic : Getter!.IsStatic;
++    public bool IsStatic => Getter?.IsStatic ?? Setter?.IsStatic ?? false;
+     public uint Token => token;
+ 
+     public override void Read(ClassReadingBinaryReader reader)
