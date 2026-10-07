@@ -173,8 +173,28 @@ internal sealed class MenuSession
         for (var i = 0; i < _pages.Length; i++)
             names[i] = _pages[i].Title;
         _view.Build(names, _player);
+        _view.SetVersions(ModVersions());
         _view.SetVisible(Open);
         Refresh();
+    }
+
+    /// <summary>"Menu 1.2.0", "HUD 1.2.0": the installed Kingdom Two Crowns mods (this one first), from BepInEx's plugin list.</summary>
+    private static List<string> ModVersions()
+    {
+        var lines = new List<string>();
+        foreach (var info in BepInEx.Unity.IL2CPP.IL2CPPChainloader.Instance.Plugins.Values)
+        {
+            var meta = info.Metadata;
+            if (meta == null || !meta.GUID.EndsWith(".kingdomtwocrowns", System.StringComparison.OrdinalIgnoreCase))
+                continue;
+            var name = meta.Name.StartsWith("Kingdom ") ? meta.Name.Substring("Kingdom ".Length) : meta.Name;
+            var line = $"{name} {meta.Version}";
+            if (meta.GUID == Plugin.Guid)
+                lines.Insert(0, line);
+            else
+                lines.Add(line);
+        }
+        return lines;
     }
 
     private void SelectTab(int tab)

@@ -1,6 +1,6 @@
 # Kingdom Menu (Kingdom Two Crowns, BepInEx 6 IL2CPP)
 
-One menu, one key, four tabs:
+One menu, one key, four tabs. The installed mods' versions are at the foot of the tab column (e.g. `Menu 1.2.0`).
 
 | Tab | What it does |
 |---|---|
@@ -106,6 +106,7 @@ own** per-player upgrades (steed, coin magnet, quick hands, bigger purse) on the
 | Army | Soldier movement | x1.10 | 5 | 3, 5, 7, 10, 15 | `Archer.walkSpeed/runSpeed`, `Knight._walkSpeed/_runSpeed/_retreatSpeed`, `Pikeman._runSpeed` |
 | Monarch | Steed stamina (per player) | x1.20 | 5 | 4, 6, 9, 14, 20 | Stamina drain ÷ multiplier, recovery × multiplier, `reserveStamina` × multiplier |
 | Monarch | Steed speed (per player) | x1.06 | 5 | 5, 8, 11, 17, 25 | `Steed.walkSpeed`, `runSpeed` |
+| Monarch | Gallop toggle (per player) | tap to gallop, tap again to stop | 1 | 6 | Once bought, its row has an ON/OFF button instead of BUY (see below) |
 | Monarch | Coin magnet (per player) | reach 1.5 / 2.5 / 3.5 / 4.5 | 4 | 4, 6, 9, 14 | Collects loose coins and gems within reach (see below) |
 | Monarch | Quick hands (per player) | x1.25 | 3 | 3, 5, 7 | `Player.timeBetweenCoins` (0.3 s per coin while paying) ÷ multiplier |
 | Monarch | Bigger purse (per player) | bag x1.25 each way | 3 | 6, 10, 15 | The purse's physics bag, so it holds about 25 / 39 / 56 / 77 coins before spilling (see below) |
@@ -118,6 +119,14 @@ own** per-player upgrades (steed, coin magnet, quick hands, bigger purse) on the
 snowball: a Bank interest level earns at most about 2 more coins a day, so it pays for itself in 5 to 20 days; a
 Harvest yield level adds 1 coin to every plot harvest, about +17% farm income. Military upgrades sit in between.
 Everything together costs roughly 900 coins, a long campaign's worth.
+
+**Gallop toggle.** Bought once; then a tap of the gallop key (Shift, or your controller's gallop button) starts
+galloping and the next tap stops it, so you don't have to hold it. Letting go of the key doesn't stop the gallop.
+If it ends by itself (you stop or turn, or the steed tires), the next tap starts a new one. Everything else
+about galloping is the game's own: you still need to be moving, and the steed's stamina and tiredness are unchanged.
+Holding the key while standing still works for steeds with an ability. The ON/OFF button on its row switches it
+off and on (saved per save and per player); RESET removes it like any upgrade. (A Harmony prefix on
+`Player.UpdateActionState` rewrites only its "pressed" and "released" flags; see `GallopToggle.cs`.)
 
 **Coin magnet.** A monarch with the magnet collects coins and gems lying within reach (about 20 units fit across the
 screen) through the game's own pickup, with its sound and purse, one coin at a time. It leaves alone coins that are

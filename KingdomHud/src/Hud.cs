@@ -182,7 +182,8 @@ public class Hud : MonoBehaviour
         _lines.Clear();
         if (Plugin.ShowKingdomInfo.Value)
         {
-            // Bank: stash, tomorrow's interest by the sun, and a bar filling up to the stash that earns the most interest.
+            // Bank: "Bank 27", tomorrow's interest by the sun ("+3/day"), and a bar filling up to the stash that earns the
+            // most interest. The words are there so it reads at a glance.
             var hasBank = KingdomInfo.TryGetBank(out var stash, out var interest, out var maxInterest, out var fullAt);
             if (Preview && !hasBank)
                 (hasBank, stash, interest, maxInterest, fullAt) = (true, 45, 5, 8, 71);
@@ -192,10 +193,10 @@ public class Hud : MonoBehaviour
                 _lines.Add(new InfoLine
                 {
                     Icon = Art.Get("map_icon_market_crate_coin") ?? Art.Get("coin_spin_0"),
-                    Text = stash.ToString(),
+                    Text = $"Bank {stash}",
                     Color = CounterPanel.Cream,
                     BadgeIcon = Art.Get("menu_sun") ?? Art.Get("sun"),
-                    Badge = $"+{interest}",
+                    Badge = $"+{interest}/day",
                     BadgeColor = interest > 0 ? CounterPanel.Gold : CounterPanel.Dim,
                     Bar = fullAt > 0 ? Mathf.Clamp01(stash / (float)fullAt) : -1f,
                     Note = full ? "max" : null,

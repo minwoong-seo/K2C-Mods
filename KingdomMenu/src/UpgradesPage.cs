@@ -47,6 +47,26 @@ internal sealed class UpgradesPage : Page
             var cost = free ? 0 : u.Cost(level);
             var canBuy = !maxed && (playing || preview) && coins.HasValue && coins.Value >= cost;
             var upgrade = u;
+            if (u.IsSwitch && maxed)
+            {
+                // Bought: switch it on and off.
+                var on = !UpgradeStore.Flag(SwitchOffFlag(u, Ctx.Player));
+                rows.Add(new RowModel
+                {
+                    Icon = Ctx.Art.IconFor(u, Ctx.Player),
+                    Name = u.Name,
+                    NameColor = on ? MenuView.Gold : MenuView.Cream,
+                    Detail = on ? $"On: {u.SwitchText}" : "Off: as normal",
+                    Pips = u.MaxLevel,
+                    PipsFull = level,
+                    PipsGold = true,
+                    Buttons = new[]
+                    {
+                        new RowButton { Label = on ? "ON" : "OFF", Enabled = playing, HoldSeconds = SwitchHoldSeconds, Activate = () => Switch(upgrade) },
+                    },
+                });
+                continue;
+            }
             rows.Add(new RowModel
             {
                 Icon = Ctx.Art.IconFor(u, Ctx.Player),
@@ -65,6 +85,21 @@ internal sealed class UpgradesPage : Page
                 },
             });
         }
+    }
+
+    private const float SwitchHoldSeconds = 0.25f;
+
+    /// <summary>Per-save flag set while a bought switch is off (so a fresh purchase starts on).</summary>
+    private static string SwitchOffFlag(Upgrade upgrade, int player) => upgrade.Key(player) + "_off";
+
+    private void Switch(Upgrade upgrade)
+    {
+        if (!GameState.Playing())
+            return;
+        var flag = SwitchOffFlag(upgrade, Ctx.Player);
+        var nowOff = !UpgradeStore.Flag(flag);
+        UpgradeStore.SetFlag(flag, nowOff);
+        Ctx.SetStatus($"{upgrade.Name} {(nowOff ? "off" : "on")}.");
     }
 
     private void Buy(Upgrade upgrade)

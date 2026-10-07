@@ -179,6 +179,22 @@ internal static class UpgradeStore
         return key != null && _saves.TryGetValue(key, out var values) && values.TryGetValue(name, out var value) && value > 0;
     }
 
+    /// <summary>Set or clear a per-save flag (a switch's state).</summary>
+    public static void SetFlag(string name, bool on)
+    {
+        var key = CurrentSaveKey();
+        if (key == null || Flag(name) == on)
+            return;
+        if (!_saves.TryGetValue(key, out var values))
+            _saves[key] = values = new Dictionary<string, int>();
+        if (on)
+            values[name] = 1;
+        else
+            values.Remove(name);
+        Save();
+        Changed?.Invoke();
+    }
+
     public static void SetFlag(string name)
     {
         var key = CurrentSaveKey();
@@ -200,7 +216,10 @@ internal static class UpgradeStore
         if (key == null || !_saves.TryGetValue(key, out var levels))
             return;
         foreach (var upgrade in Upgrades.All)
+        {
             levels.Remove(upgrade.Key(player));
+            levels.Remove(upgrade.Key(player) + "_off"); // a switch bought again starts on
+        }
         Save();
         Changed?.Invoke();
     }

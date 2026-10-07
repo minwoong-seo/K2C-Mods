@@ -31,6 +31,12 @@ internal sealed class Upgrade
     /// <summary>Levels are kept per player (the steed upgrades: each monarch upgrades their own mount).</summary>
     public bool PerPlayer;
 
+    /// <summary>A one-off purchase that can then be switched on and off: once bought, its row has an ON/OFF button.</summary>
+    public bool IsSwitch;
+
+    /// <summary>For switches: what it does (short, it shares the row with the button).</summary>
+    public string SwitchText;
+
     /// <summary>Hidden until this returns true (so the menu doesn't spoil units not reached yet); null = always shown.</summary>
     public Func<bool> Unlocked;
 
@@ -47,6 +53,8 @@ internal sealed class Upgrade
     // Shown as multipliers ("x1.15"): in the game's pixel font '%', '|', '>' and '~' are controller-button icons, not symbols.
     public string Effect(int level)
     {
+        if (IsSwitch)
+            return level >= MaxLevel ? SwitchText : $"Next: {SwitchText}";
         var now = Format(level);
         var next = Format(level + 1);
         if (level >= MaxLevel)
@@ -127,6 +135,13 @@ internal static class Upgrades
         Icons = new[] { "steed" }, MaxLevel = 5, BaseCost = 5, PerLevel = 0.06f,
     };
 
+    // Tap the gallop key to start galloping and tap again to stop, instead of holding it (see GallopToggle).
+    public static readonly Upgrade GallopToggle = new()
+    {
+        Id = "gallop_toggle", PerPlayer = true, Name = "Gallop toggle", Category = Category.Monarch,
+        Icons = new[] { "steed" }, MaxLevel = 1, BaseCost = 6, IsSwitch = true, SwitchText = "tap to gallop/stop",
+    };
+
     /// <summary>Reach of the coin magnet at a level, in world units (about 20 fit across the screen).</summary>
     public static float MagnetReach(int level) => level <= 0 ? 0f : 0.5f + level;
 
@@ -185,7 +200,7 @@ internal static class Upgrades
     {
         BuilderWork, BuilderMove, VillagerMove, RecruitSpeed,
         ArcherRate, ArcherDamage, ArcherRange, SoldierDamage, SoldierMove,
-        SteedStamina, SteedSpeed, CoinMagnet, QuickHands, BiggerPurse,
+        SteedStamina, SteedSpeed, GallopToggle, CoinMagnet, QuickHands, BiggerPurse,
         WallToughness, WallRepair, BankInterest, HarvestYield,
     };
 

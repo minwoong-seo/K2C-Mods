@@ -119,6 +119,8 @@ internal class MenuView
     private const int MinVisibleRows = 4;
     /// <summary>Art pixels kept clear above the panel (the game's coin purse sits at the top of each view).</summary>
     private const float TopMargin = 56f;
+    /// <summary>The mods' versions, one per line at the foot of the tab column.</summary>
+    private const float VersionLineStep = 13f;
 
     internal static readonly Color Cream = new(0.96f, 0.91f, 0.78f);
     internal static readonly Color Gold = new(1f, 0.82f, 0.36f);
@@ -153,6 +155,7 @@ internal class MenuView
     private Text _empty;
     private Text _footer;
     private RectTransform _sideDivider;
+    private readonly List<Text> _versions = new();
     private RectTransform _scrollThumb;
     private int _scroll;
     private int _visibleRows = MaxVisibleRows;
@@ -359,7 +362,23 @@ internal class MenuView
 
     /// <summary>Panel height (art pixels) of a page with sub-tabs and this many rows; matches Layout().</summary>
     private float TallestPanel(int rows) =>
-        Mathf.Max(BodyTop + _tabs.Count * TabStep - 4f, BodyTop + TabStep + rows * RowStep - 2f) + 32f;
+        Mathf.Max(SidebarBottom(), BodyTop + TabStep + rows * RowStep - 2f) + 32f;
+
+    /// <summary>Where the tab column ends: the tabs, then the version lines under them.</summary>
+    private float SidebarBottom() =>
+        BodyTop + _tabs.Count * TabStep - 4f + (_versions.Count > 0 ? 4f + _versions.Count * VersionLineStep : 0f);
+
+    /// <summary>Small dim lines at the foot of the tab column, e.g. "Menu 1.2.0" and "HUD 1.2.0".</summary>
+    public void SetVersions(IReadOnlyList<string> lines)
+    {
+        foreach (var t in _versions)
+            Object.Destroy(t.gameObject);
+        _versions.Clear();
+        foreach (var line in lines)
+            _versions.Add(AddText(NewRect("Version", _panel, Inset + 2f, 0f, SidebarWidth, VersionLineStep), _art.Body, line, Dim, TextAnchor.MiddleLeft));
+        _layoutShown = -1; // re-layout
+        Layout();
+    }
 
     public void SetHeader(string title, string closeHint, int? coins, int gems)
     {
@@ -482,7 +501,9 @@ internal class MenuView
             _empty.gameObject.SetActive(total == 0);
             Place(_empty.rectTransform, ContentX + 4f, rowsTop, ContentWidth - 8f, RowHeight);
             // The body is as tall as the longer of the tab column and the page.
-            var bodyBottom = Mathf.Max(BodyTop + _tabs.Count * TabStep - 4f, rowsTop + Math.Max(shown, 1) * RowStep - 2f);
+            var bodyBottom = Mathf.Max(SidebarBottom(), rowsTop + Math.Max(shown, 1) * RowStep - 2f);
+            for (var i = 0; i < _versions.Count; i++)
+                Place(_versions[i].rectTransform, Inset + 2f, bodyBottom - (_versions.Count - i) * VersionLineStep, SidebarWidth, VersionLineStep);
             _sideDivider.sizeDelta = new Vector2(1f, bodyBottom - BodyTop);
             var footerY = bodyBottom + 5f;
             Place(_footer.rectTransform, Inset + 4f, footerY, HeaderWidth - 8f, 16f);

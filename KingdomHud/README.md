@@ -20,7 +20,7 @@ An information HUD drawn with the game's own sprites and fonts:
   active. Stables don't count.
 - **Purse:** the coins (and gems, if any) in your bag, for both players in co-op.
 - **Kingdom info** under the counter, drawn with the game's own icons:
-  - **Bank:** a coin crate with the banker's stash, a sun with the interest it adds at the next dawn (computed exactly
+  - **Bank:** `Bank 27` (a coin crate with the banker's stash), a sun with `+3/day`, the interest it adds at the next dawn (computed exactly
     like the game: `min(maxInterest, ceil(stash x dailyInterest))`), and a gold bar filling up to the stash that
     earns the most interest ("max" once it does).
   - **Cottages:** a villager with one pip per cottage slot (lit = ready to hire), a bar filling up to the next refill,

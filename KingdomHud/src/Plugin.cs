@@ -11,7 +11,7 @@ public class Plugin : BasePlugin
 {
     public const string Guid = "kingdomhud.kingdomtwocrowns";
     public const string Name = "Kingdom HUD";
-    public const string Version = "1.1.0";
+    public const string Version = "1.2.0";
 
     public enum Corner { TopLeft, TopRight, BottomLeft, BottomRight }
 

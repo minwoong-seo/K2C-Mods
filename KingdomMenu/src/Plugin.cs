@@ -12,7 +12,7 @@ public class Plugin : BasePlugin
 {
     public const string Guid = "kingdommenu.kingdomtwocrowns";
     public const string Name = "Kingdom Menu";
-    public const string Version = "1.1.0";
+    public const string Version = "1.2.0";
 
     internal static ManualLogSource Logger;
     internal static ConfigEntry<KeyCode> ToggleKey;
@@ -65,6 +65,8 @@ public class Plugin : BasePlugin
         harmony.PatchAll(typeof(PurseSpawnPatch));
         // Holding the drop key keeps dropping coins.
         harmony.PatchAll(typeof(HoldToDropPatch));
+        // The Gallop toggle upgrade: tap to gallop, tap again to stop.
+        harmony.PatchAll(typeof(GallopTogglePatch));
 
         // Checks for newer versions of the mods in the background; MenuHost shows the popup.
         Updates.Start();
